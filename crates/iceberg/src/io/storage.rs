@@ -20,6 +20,8 @@ use std::sync::Arc;
 use opendal::layers::RetryLayer;
 #[cfg(feature = "storage-gcs")]
 use opendal::services::GcsConfig;
+#[cfg(feature = "storage-hdfs")]
+use opendal::services::HdfsConfig;
 #[cfg(feature = "storage-oss")]
 use opendal::services::OssConfig;
 #[cfg(feature = "storage-s3")]
@@ -47,6 +49,8 @@ pub(crate) enum Storage {
     Oss { config: Arc<OssConfig> },
     #[cfg(feature = "storage-gcs")]
     Gcs { config: Arc<GcsConfig> },
+    #[cfg(feature = "storage-hdfs")]
+    Hdfs { config: Arc<HdfsConfig> },
 }
 
 impl Storage {
@@ -72,6 +76,10 @@ impl Storage {
             #[cfg(feature = "storage-oss")]
             Scheme::Oss => Ok(Self::Oss {
                 config: super::oss_config_parse(props)?.into(),
+            }),
+            #[cfg(feature = "storage-hdfs")]
+            Scheme::Hdfs => Ok(Self::Hdfs {
+                config: super::hdfs_config_parse(props)?.into(),
             }),
             // Update doc on [`FileIO`] when adding new schemes.
             _ => Err(Error::new(
@@ -111,6 +119,16 @@ impl Storage {
             Storage::LocalFs => {
                 let op = super::fs_config_build()?;
 
+                if let Some(stripped) = path.strip_prefix("file:/") {
+                    Ok::<_, crate::Error>((op, stripped))
+                } else {
+                    Ok::<_, crate::Error>((op, &path[1..]))
+                }
+            }
+
+            #[cfg(feature = "storage-hdfs")]
+            Storage::Hdfs { config } => {
+                let op = super::hdfs_config_build(config)?;
                 if let Some(stripped) = path.strip_prefix("file:/") {
                     Ok::<_, crate::Error>((op, stripped))
                 } else {

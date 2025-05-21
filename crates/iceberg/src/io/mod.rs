@@ -94,6 +94,11 @@ mod storage_oss;
 #[cfg(feature = "storage-oss")]
 pub use storage_oss::*;
 
+#[cfg(feature = "storage-hdfs")]
+mod storage_hdfs;
+#[cfg(feature = "storage-hdfs")]
+pub use storage_hdfs::*;
+
 pub(crate) fn is_truthy(value: &str) -> bool {
     ["true", "t", "1", "on"].contains(&value.to_lowercase().as_str())
 }
