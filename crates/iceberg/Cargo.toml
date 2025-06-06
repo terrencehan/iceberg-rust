@@ -38,6 +38,7 @@ storage-memory = ["opendal/services-memory"]
 storage-oss = ["opendal/services-oss"]
 storage-s3 = ["opendal/services-s3"]
 storage-hdfs = ["opendal/services-hdfs"]
+storage-hdfs-native = ["opendal/services-hdfs-native"]
 
 async-std = ["dep:async-std"]
 tokio = ["tokio/rt-multi-thread"]

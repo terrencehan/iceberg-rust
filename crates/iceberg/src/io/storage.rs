@@ -22,6 +22,8 @@ use opendal::layers::RetryLayer;
 use opendal::services::GcsConfig;
 #[cfg(feature = "storage-hdfs")]
 use opendal::services::HdfsConfig;
+#[cfg(feature = "storage-hdfs-native")]
+use opendal::services::HdfsNativeConfig;
 #[cfg(feature = "storage-oss")]
 use opendal::services::OssConfig;
 #[cfg(feature = "storage-s3")]
@@ -51,6 +53,9 @@ pub(crate) enum Storage {
     Gcs { config: Arc<GcsConfig> },
     #[cfg(feature = "storage-hdfs")]
     Hdfs { config: Arc<HdfsConfig> },
+    #[cfg(feature = "storage-hdfs-native")]
+    HdfsNative { config: Arc<HdfsNativeConfig> },
+
 }
 
 impl Storage {
@@ -81,6 +86,11 @@ impl Storage {
             Scheme::Hdfs => Ok(Self::Hdfs {
                 config: super::hdfs_config_parse(props)?.into(),
             }),
+            #[cfg(feature = "storage-hdfs-native")]
+            Scheme::HdfsNative => Ok(Self::HdfsNative {
+                config: super::hdfs_native_config_parse(props)?.into(),
+            }),
+
             // Update doc on [`FileIO`] when adding new schemes.
             _ => Err(Error::new(
                 ErrorKind::FeatureUnsupported,
@@ -129,12 +139,27 @@ impl Storage {
             #[cfg(feature = "storage-hdfs")]
             Storage::Hdfs { config } => {
                 let op = super::hdfs_config_build(config)?;
-                if let Some(stripped) = path.strip_prefix("file:/") {
+                if let Some(stripped) =
+                    path.strip_prefix(config.default_fs().unwrap_or_default().as_str())
+                {
                     Ok::<_, crate::Error>((op, stripped))
                 } else {
                     Ok::<_, crate::Error>((op, &path[1..]))
                 }
             }
+
+            #[cfg(feature = "storage-hdfs-native")]
+            Storage::HdfsNative { config } => {
+                let op = super::hdfs_native_config_build(config)?;
+                if let Some(stripped) =
+                    path.strip_prefix(config.default_fs().unwrap_or_default().as_str())
+                {
+                    Ok::<_, crate::Error>((op, stripped))
+                } else {
+                    Ok::<_, crate::Error>((op, &path[1..]))
+                }
+            }
+
             #[cfg(feature = "storage-s3")]
             Storage::S3 { scheme_str, config } => {
                 let op = super::s3_config_build(config, path)?;
@@ -207,6 +232,10 @@ impl Storage {
             "s3" | "s3a" => Ok(Scheme::S3),
             "gs" | "gcs" => Ok(Scheme::Gcs),
             "oss" => Ok(Scheme::Oss),
+            #[cfg(feature = "storage-hdfs-native")]
+            "hdfs" => Ok(Scheme::HdfsNative),
+            #[cfg(not(feature = "storage-hdfs-native"))]
+            "hdfs" => Ok(Scheme::Hdfs),
             s => Ok(s.parse::<Scheme>()?),
         }
     }
