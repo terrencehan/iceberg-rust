@@ -139,6 +139,7 @@ impl Storage {
             #[cfg(feature = "storage-hdfs")]
             Storage::Hdfs { config } => {
                 let op = super::hdfs_config_build(config)?;
+                println!("default_fs: {}", config.default_fs().unwrap_or_default().as_str());
                 if let Some(stripped) =
                     path.strip_prefix(config.default_fs().unwrap_or_default().as_str())
                 {
