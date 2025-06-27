@@ -151,14 +151,11 @@ impl Storage {
             #[cfg(feature = "storage-hdfs-native")]
             Storage::HdfsNative { config } => {
                 let op = super::hdfs_native_config_build(config)?;
-                println!("default_fs: {}", config.default_fs().unwrap_or_default().as_str());
-                if let Some(stripped) =
-                    path.strip_prefix(config.default_fs().unwrap_or_default().as_str())
-                {
-                    Ok::<_, crate::Error>((op, stripped))
-                } else {
-                    Ok::<_, crate::Error>((op, &path[1..]))
-                }
+                println!(
+                    "default_fs: {}",
+                    config.default_fs().unwrap_or_default().as_str()
+                );
+                Ok::<_, crate::Error>((op, path))
             }
 
             #[cfg(feature = "storage-s3")]
